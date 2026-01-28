@@ -126,3 +126,43 @@ Each backend has its own query language.
   * We do NOT store every single HTTP request details. We store counter, sums, and buckets.
 * Data is scraped at regular intervals (e.g every 15 secods). Very short-lived events might be missed.
 * Functions like rate(), increase() are approximations. It is all about finding the trends/patterns.
+
+Instant Vector.  
+http_server_request_duration_seconds_count.  
+![Instant Vector](images/instant-vector.png)
+
+Range Vector"Range of data points over time.  
+http_server_request_duration_seconds_count[1m].  
+![Range Vector](images/range-vector.png)
+
+![Prometheus Graph](images/prometheus-graph.png)
+
+![Prometheus Result](images/prometheus-result.png)
+
+
+* PomQL Basic Queries
+  * http_server_request_duration_seconds_count{exported_job="movie-service"}
+  * http_server_request_duration_seconds_count{exported_job="movie-service", http_response_status_code="500"}
+  * http_server_request_duration_seconds_count{exported_job="movie-service"} or http_server_request_duration_seconds_count{exported_job="review-service"}
+  * http_server_request_duration_seconds_count{http_response_status_code=~"4..|5.."}
+  * http_server_request_duration_seconds_count{http_response_status_code!="404"}
+* PomQL Aggregators
+  * sum(http_server_request_duration_seconds_count{exported_job="movie-service"})
+  * max(http_server_request_duration_seconds_count{exported_job="movie-service"})
+  * min(http_server_request_duration_seconds_count{exported_job="movie-service"})
+  * avg(http_server_request_duration_seconds_count{exported_job="movie-service"})
+  * sum by(exported_job) (http_server_request_duration_seconds_count)
+  * sum by(exported_job) (http_server_request_duration_seconds_count{http_response_status_code=~"4..|5.."})
+  * sum by(http_route) (http_server_request_duration_seconds_count{http_response_status_code=~"4..|5.."})
+  * sum by(http_route, http_response_status_code) (http_server_request_duration_seconds_count)
+
+### Prometheus - Range Functions
+* rate()
+* increase()
+* ..
+* ..
+* what is the error rate? Number of failures per hour, per minute...?
+* How many failures are in the last 24 hours?
+
+* average response time
+  * rate(http_server_request_duration_seconds_sum[1m]) / rate(http_server_request_duration_seconds_count[1m])
