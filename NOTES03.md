@@ -106,14 +106,23 @@ Each backend has its own query language.
 * Time-series data is LIKE a RDBMS table where the timestap (+ labels) acts as the primary key.
   * Table => Measurement / Metric
 
-timestap                 | service   | containerId   | value
-------------------------------------------------------------------------
-2025-09-19 00:12:02      |  movie-svc|   1020        |   23
-2025-09-19 00:11:05      |  movie-svc|   3455        |   55
-2025-09-19 00:10:14      |  movie-svc|   1020        |   10
+| timestap                 | service   | containerId   | value  |
+|--------------------------|-----------|---------------|--------|
+| 2025-09-19 00:12:02      |  movie-svc|   1020        |   23   |
+| 2025-09-19 00:11:05      |  movie-svc|   3455        |   55   |
+| 2025-09-19 00:10:14      |  movie-svc|   1020        |   10   |
 
 
 ### Prometheus Architecture
 * Pull Based DB
 * Prometheus is PULL based for metrics, it will ask for the metrics of the application
   * Service discovery
+
+
+### Prometheus Data Accurary
+* Metrics are NOT mission critical data. They are operational signals
+* Metrics are NOT meant for business use cases like billing, customer transactions, or audits
+* Metrics are aggregated
+  * We do NOT store every single HTTP request details. We store counter, sums, and buckets.
+* Data is scraped at regular intervals (e.g every 15 secods). Very short-lived events might be missed.
+* Functions like rate(), increase() are approximations. It is all about finding the trends/patterns.
