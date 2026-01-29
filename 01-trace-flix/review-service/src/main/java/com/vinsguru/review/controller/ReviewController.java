@@ -26,7 +26,7 @@ public class ReviewController {
     @GetMapping("/api/reviews")
     public List<ReviewDto> getReviews(@RequestParam Integer movieId,
                                       @RequestHeader Map<String, String> headers) {
-        log.info("received headers: {}", headers);
+        log.info("request received for movie id: {}, headers: {}", movieId, headers);
         return this.reviewService.getReviews(movieId);
     }
 

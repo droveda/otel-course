@@ -8,6 +8,7 @@ import com.vinsguru.movie.mapper.EntityDtoMapper;
 import com.vinsguru.movie.repository.MovieRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 //import java.util.stream.Gatherers;
 
@@ -26,16 +27,17 @@ public class MovieService {
 
     public Optional<MovieDto> getMovie(Integer movieId) {
         return this.repository.findById(movieId)
-                              .map(this::buildDto);
+                .map(this::buildDto);
     }
 
     private MovieDto buildDto(Movie movie) {
         var reviews = this.reviewClient.getReviews(movie.getId());
         var actors = movie.getActorIds()
-                          .stream()
-                          .map(this.actorClient::getActor) // intentional sequential calls
-                         //.gather(Gatherers.mapConcurrent(5, this.actorClient::getActor))
-                          .toList();
+                .stream()
+                .map(this.actorClient::getActor) // intentional sequential calls
+                .filter(Objects::nonNull)
+                //.gather(Gatherers.mapConcurrent(5, this.actorClient::getActor))
+                .toList();
         return EntityDtoMapper.toDto(movie, actors, reviews);
     }
 

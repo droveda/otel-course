@@ -1,11 +1,15 @@
 package com.vinsguru.movie.controller;
 
 import com.vinsguru.movie.dto.MovieDto;
+import com.vinsguru.movie.exception.MovieNotFoundException;
 import com.vinsguru.movie.service.MovieService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -22,11 +26,11 @@ public class MovieController {
 
     @GetMapping("/api/movies/{movieId}")
     public ResponseEntity<MovieDto> getMovie(@PathVariable Integer movieId,
-                                             @RequestHeader Map<String, String> headers){
-        log.info("received headers: {}", headers);
+                                             @RequestHeader Map<String, String> headers) {
+        log.info("request received for movieId: {}, headers: {}", movieId, headers);
         return this.movieService.getMovie(movieId)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new MovieNotFoundException(movieId));
     }
 
 }

@@ -25,3 +25,54 @@ Note: Why do we need logging when we have distributed tracing?
 * Correlate logs with specific requests or transactions for easier debugging
 * Visualize and explore logs in Grafana
 * Achieve this without changing existing logging code, making observability seamless in a distributed environment
+
+
+### Logging / Error Handling
+* Add logging / error handling to the trace-flix application (java source code)
+* build the images again
+* mvn clean install
+* docker compose up --build
+
+### Need for Open Telemetry LogBack Appender
+* Goal
+  * Collect logs from all services and instances into a centralized system using the OpenTelemetry Collector
+  * Correlate logs with specific requests or transactions for easier debugging
+  * Visualize and explore logs in Grafana
+  * Achieve this without changing existing logging code, making observability seamless in a distributed environment
+
+```mermaid
+graph TD;
+    movie-service-->actor-service;
+    movie-service-->review-service;
+    movie-service-->ms-DB;
+    actor-service-->as-DB;
+    review-service-->rs-DB;
+    movie-service-->otel-collector;
+    actor-service-->otel-collector;
+    review-service-->otel-collector;
+    otel-collector-->tempo;
+    otel-collector-->loki;
+    grafana-->tempo;
+    grafana-->loki;
+```
+
+The agent cannot send the logs to otel-collector automatically.  
+This is because we use Logback framework.  
+Logback Appender.  appender decides where the log goes.  
+
+Logback Appender.  
+```mermaid
+graph TD;
+    logback-->otel-appender;
+    otel-appender-->agent;
+    agent-->enrich-log-OTLP;
+```
+
+The agent can enrich the log with the tracing information while exporting.  
+
+
+We need a logback **appender** to capture logging events.  
+1. pom.xml: Add the otel dependency for appender
+2. logback.xml: Configure to use the appender
+3. mvn clean install
+4. docker compose build
