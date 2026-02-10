@@ -2,15 +2,17 @@ package com.droveda.instrumentation.trace;
 
 import com.droveda.instrumentation.CommonUtil;
 import com.droveda.instrumentation.OpenTelemetryConfig;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
 
-public class Lec02ParentChildDemo {
+public class Lec03ExplicitParentChildDemo {
 
-    private static final Tracer tracer = OpenTelemetryConfig.tracer(Lec02ParentChildDemo.class);
+    private static final Tracer tracer = OpenTelemetryConfig.tracer(Lec03ExplicitParentChildDemo.class);
 
     public static void main(String[] args) {
-        var demo = new Lec02ParentChildDemo();
+        var demo = new Lec03ExplicitParentChildDemo();
         //POST /orders
         demo.processOrder();
 
@@ -21,10 +23,12 @@ public class Lec02ParentChildDemo {
     private void processOrder() {
         var span = tracer.spanBuilder("processOrder").startSpan();
 
-        try (var scope = span.makeCurrent()) {
-            processPayment();
-            deductInventory();
-            sendNotification();
+        try {
+            processPayment(span);
+
+            Thread.ofPlatform().start(() -> deductInventory(span));
+
+            Thread.ofVirtual().start(() -> sendNotification(span));
 
             span.setAttribute("order.id", 123);
             span.setAttribute("order.amount", 1000);
@@ -38,10 +42,12 @@ public class Lec02ParentChildDemo {
         }
     }
 
-    private void processPayment() {
-        var span = tracer.spanBuilder("processPayment").startSpan();
+    private void processPayment(Span parent) {
+        var span = tracer.spanBuilder("processPayment")
+                .setParent(Context.current().with(parent))
+                .startSpan();
 
-        try (var scope = span.makeCurrent()) {
+        try {
             CommonUtil.sleepMillis(150);
 
             span.setAttribute("payment.method", "CREDIT_CARD");
@@ -54,8 +60,9 @@ public class Lec02ParentChildDemo {
         }
     }
 
-    private void deductInventory() {
+    private void deductInventory(Span parent) {
         var span = tracer.spanBuilder("deductInventory")
+                .setParent(Context.current().with(parent))
                 .startSpan();
         try {
             CommonUtil.sleepMillis(125);
@@ -69,8 +76,9 @@ public class Lec02ParentChildDemo {
 
     }
 
-    private void sendNotification() {
+    private void sendNotification(Span parent) {
         var span = tracer.spanBuilder("sendNotification")
+                .setParent(Context.current().with(parent))
                 .startSpan();
         try {
             CommonUtil.sleepMillis(100);

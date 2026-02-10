@@ -136,3 +136,204 @@ void method2() {
 }
 
 ```
+
+### Context
+```java
+// Context.current()
+// Returns the current context from ContextStorage
+// If no Context has been stored yet, this does NOT return null
+// Instead, it will returns the root Context - a special Context without any span.
+Context.current();
+
+// How to add a span to a Context?
+// 
+// Returns a NEW Context object that contains the given span.
+// Important: Context is immutable. The existing Context is not modified.
+// A new Context instance is created with the span included.
+Context.current().with(span);
+```
+
+
+### Example
+```java
+var span1 = tracer.spanBuilder("span1").startSpan();
+
+var span2 = tracer.spanBuilder("span2").startSpan();
+```
+
+
+```java
+var span1 = tracer.spanBuilder("span1").startSpan();
+
+var span2 = tracer.spanBuilder("span2")
+        .setParent(Context.current().withSpan(span1)) // sets span1 as parent
+        .startSpan();
+```
+
+What is the use case for this?  
+This one is great when we have multiple threads, because the other option with ``` span.makeCurrent() ``` uses thread local.  
+
+### Context Propagation
+* Context propagation is the mechanism by which execution context (CONTEXT) is passed along as a request moves through different parts of a system (such as between threads, methods, or services).
+  * It ensures that all operations related to the same logical transaction can be linked together into a single trace.
+
+
+### Span King
+```java
+var span = tracer.spanBuilder("processOrder")
+                .setSpanKind(SpanKind.SERVER)
+                .startSpan();
+```
+
+Alailable Types:  
+* SERVER (incoming requests)
+* CLIENT (outgoing requests)
+* PRODUCER (send message/event)
+* CONSUMER (receiving message/event)
+* INTERNAL (operations that are not network calls or messaging)
+
+
+## Metrics (Manual)
+
+### Metrics Naming Convention
+* ```[namespace].[entity or domain].[operation or action].[type or unit]```
+  * namespace -> high-level system area (http, db, jvm, app)
+  * entity/domain -> what the metric is about (server, client, memory, product)
+  * operation/action -> what is happening (request,view,usage)
+  * type/unit -> nature or the value (duration, count, utilization)
+* Good
+  * http.server.request.duration
+  * http.client.active_requests
+  * jvm.memory.utilization (NOT jvm.memory.usage.utilization)
+  * app.product.view.count
+  * trace_flix.movie.view.count (NOT trace.flix.movie.view.count)
+* Bad
+  * memory.utilized.by.jvm
+
+### Metric Attributes Naming
+* ```[namespace].[property]/[entity].[property]```
+* Good
+  * http.method
+  * http.route
+  * url.path
+  * product.id
+  * movie.category
+
+### Metric Unit
+
+```java
+meter.counterBuilder("app.product.view.count")
+    .setDescription("Total number of product view")
+    .setUnit("1")
+    .build();
+```
+
+
+
+| Type                 | Unit   | Comment   
+|--------------------------|-----------|---------------|
+| Dimensionless Counts      |  1, {request}, {error}, {rbc}|   plain count, request count, error count, red blood cells count        |
+| Duration      |  s, ms, us, ns|   Seconds, Miliseconds, microseconds, nanoseconds        |
+| Data      |  By   |   bytes        |
+| Ratio/Percentage      |  1, %|   0-1, 0-100        |
+
+
+### Gauge
+```java
+
+meter.gaugeBuilder("jvm.memory.used")
+    .ofLongs()
+    .setDescription("The amount of JVM memory currently used")
+    .setUnit("By")
+    .buildWithCallback(o -> {
+        var usedMemory = Runtime.getRuntime().totalMemory - Runtime.getRuntime().freeMemory();
+        o.record(usedMemory);
+    });
+
+```
+
+### UpDown Counter
+* To track values that can go up and down
+* Gauge
+  * We track the actual value at a point in time!
+* UpDownCounter
+  * We track the changes (increments / decrements) over time!
+
+UpDown Counter:  
+* We track the changes
+* Bank Account
+  * +10
+  * +20
+  * +30
+  * +5
+  * -45
+  * +3
+* We track the changes (increments/decrements) over time!
+* Use cases:
+  * Active Sessions:
+    * +1 for login, -1 for logout
+  * Pending jobs in the queue
+    * +1 when a job enters the queue, -1 when it is processes
+  * Open Connection
+    * +1 when a connection is created, -1 when it is closed
+
+
+### Histrogram
+* To track the distribution of values
+* Example:
+  * 10K tasks
+  * Each task takes between 100ms and 10s
+* Distribution
+  * 1000 tasks < 1s
+  * 2200 tasks < 2s
+  * 3100 tasks < 3s
+  * ...
+  * ...
+
+
+## Logs
+* MDC
+* TurboFilter
+
+### MDC 
+* Mapped Diagnostic Context
+* Enrich Logs with contextual information automatically included in every log message
+
+#### Problem Statement
+* Logs show the amount, but no information about which user or request this belongs to.
+* If multiple payments are processed, it is impossible to correlate logs to a specifc user.
+* Manually adding the userId or other context everywhere is tedious and error-prone.
+```java
+
+public void processPayment(PaymentDetails paymentDetails) {
+    ...
+    ...
+    log.info("Payment processed. Amount: {}", paymentDetails.getAmount());
+}
+
+```
+
+
+#### MDC example
+MDC uses ThreadLocal.  
+```java
+// when the user logs in or a request starts
+MDC.put("userId", "123");
+
+public void processPayment(PaymentDetails paymentDetails) {
+    ...
+    ...
+    log.info("Payment processed. Amount: {}", paymentDetails.getAmount());
+}
+
+public void sendNotification(NotificationDetails details) {
+    log.info("Notification Email sent");
+}
+
+// when the user logs out or request ends
+MDC.clear();
+
+// final log message example:
+// INFO [userId=123] Payment processed. Amount: 250.00
+// INFO [userId=123] Notification Email Sent
+```
