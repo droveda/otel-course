@@ -5,9 +5,13 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.exporter.otlp.logs.OtlpGrpcLogRecordExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
+import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.logs.SdkLoggerProvider;
+import io.opentelemetry.sdk.logs.export.SimpleLogRecordProcessor;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
@@ -25,6 +29,7 @@ public class OpenTelemetryConfig {
         return OpenTelemetrySdk.builder()
                 .setTracerProvider(tracerProvider())
                 .setMeterProvider(meterProvider())
+                .setLoggerProvider(loggerProvider())
                 .build();
     }
 
@@ -57,6 +62,20 @@ public class OpenTelemetryConfig {
                 .build();
     }
 
+    private static SdkLoggerProvider loggerProvider() {
+        var exporter = OtlpGrpcLogRecordExporter.builder()
+                .setEndpoint(COLLECTOR_ENDPOINT)
+                .build();
+
+//        var processor = BatchLogRecordProcessor.builder(exporter).build();
+        var processor = SimpleLogRecordProcessor.create(exporter);
+
+        return SdkLoggerProvider.builder()
+                .setResource(resource())
+                .addLogRecordProcessor(processor)
+                .build();
+    }
+
     private static Resource resource() {
         return Resource.create(Attributes.of(
                 AttributeKey.stringKey("service.name"), "order-service"
@@ -71,4 +90,7 @@ public class OpenTelemetryConfig {
         return openTelemetry.getMeter(type.getName());
     }
 
+    public static void setupLoggingAppender() {
+        OpenTelemetryAppender.install(openTelemetry);
+    }
 }

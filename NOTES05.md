@@ -178,14 +178,14 @@ This one is great when we have multiple threads, because the other option with `
   * It ensures that all operations related to the same logical transaction can be linked together into a single trace.
 
 
-### Span King
+### Span Kind
 ```java
 var span = tracer.spanBuilder("processOrder")
                 .setSpanKind(SpanKind.SERVER)
                 .startSpan();
 ```
 
-Alailable Types:  
+Alailable SPAN Kinds:  
 * SERVER (incoming requests)
 * CLIENT (outgoing requests)
 * PRODUCER (send message/event)
@@ -194,6 +194,20 @@ Alailable Types:
 
 
 ## Metrics (Manual)
+
+### Types of Metrics
+* Counter
+  * only goes UP
+    * number of requests processed
+    * number of errors
+* Gauge / UpDownCounter
+  * Can go up and down
+    * CPU Usage
+    * Available Inventory
+* Histogram
+  * Distribution of values
+    * Request latency (requests completed in < 10m <50m, <100ms, etc...)
+    * Size of uploaded files (<10MB, <50MB...)
 
 ### Metrics Naming Convention
 * ```[namespace].[entity or domain].[operation or action].[type or unit]```
@@ -337,3 +351,22 @@ MDC.clear();
 // INFO [userId=123] Payment processed. Amount: 250.00
 // INFO [userId=123] Notification Email Sent
 ```
+
+
+### TurboFilter
+#### Problem Statement
+* INFO
+  * Record high level application flow and important business events.
+  * Less verbose
+  * Suitable for production
+* DEBUG
+  * Record internal state of the application for troubleshooting. Contains detailed technical information such as variable values, object states and steps inside an algorithm, etc...
+  * Very verbose
+  * NOT suitable for production
+* We cannot turn on DEBUG globally
+  * The service handles thousands of requests per second
+  * Enabling DEBUG for all requests would flood your logs, make it harder to find relevant information, and potentially affect performance
+
+#### Targeted Debugging
+* Sometimes an issue occurs only for a particular user, order, or request. You need detailed context for that single request/transaction
+  * **TurboFilter** can enable DEBUG logging dynamically based on certains conditions.
