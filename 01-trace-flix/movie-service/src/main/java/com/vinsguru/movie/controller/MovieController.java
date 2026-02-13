@@ -1,5 +1,6 @@
 package com.vinsguru.movie.controller;
 
+import com.vinsguru.movie.config.MovieViewMetrics;
 import com.vinsguru.movie.dto.MovieDto;
 import com.vinsguru.movie.exception.MovieNotFoundException;
 import com.vinsguru.movie.service.MovieService;
@@ -20,17 +21,24 @@ public class MovieController {
 
     private final MovieService movieService;
 
-    public MovieController(MovieService movieService) {
+    private final MovieViewMetrics movieViewMetrics;
+
+    public MovieController(MovieService movieService, MovieViewMetrics movieViewMetrics) {
         this.movieService = movieService;
+        this.movieViewMetrics = movieViewMetrics;
     }
 
     @GetMapping("/api/movies/{movieId}")
     public ResponseEntity<MovieDto> getMovie(@PathVariable Integer movieId,
                                              @RequestHeader Map<String, String> headers) {
         log.info("request received for movieId: {}, headers: {}", movieId, headers);
-        return this.movieService.getMovie(movieId)
+
+        var response = this.movieService.getMovie(movieId)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new MovieNotFoundException(movieId));
+
+        this.movieViewMetrics.recordView(movieId);
+        return response;
     }
 
 }

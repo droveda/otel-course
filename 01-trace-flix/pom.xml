@@ -23,14 +23,22 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <otel.logback.appender.version>2.18.1-alpha</otel.logback.appender.version>
+        <otel.version>2.20.1</otel.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+<!--            <dependency>-->
+<!--                <groupId>io.opentelemetry.instrumentation</groupId>-->
+<!--                <artifactId>opentelemetry-logback-appender-1.0</artifactId>-->
+<!--                <version>${otel.logback.appender.version}</version>-->
+<!--            </dependency>-->
             <dependency>
                 <groupId>io.opentelemetry.instrumentation</groupId>
-                <artifactId>opentelemetry-logback-appender-1.0</artifactId>
-                <version>${otel.logback.appender.version}</version>
+                <artifactId>opentelemetry-instrumentation-bom</artifactId>
+                <version>${otel.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

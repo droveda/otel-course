@@ -6,6 +6,8 @@ import com.vinsguru.movie.dto.MovieDto;
 import com.vinsguru.movie.entity.Movie;
 import com.vinsguru.movie.mapper.EntityDtoMapper;
 import com.vinsguru.movie.repository.MovieRepository;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -25,19 +27,34 @@ public class MovieService {
         this.reviewClient = reviewClient;
     }
 
+    @WithSpan("fetching movie details")
     public Optional<MovieDto> getMovie(Integer movieId) {
         return this.repository.findById(movieId)
                 .map(this::buildDto);
     }
 
     private MovieDto buildDto(Movie movie) {
+        var span = Span.current();
+
         var reviews = this.reviewClient.getReviews(movie.getId());
+
+        span.addEvent("Fetching actors concurrently");
+
+
+//        var actors = movie.getActorIds()
+//                .stream()
+//                .map(this.actorClient::getActor) // intentional sequential calls
+//                .filter(Objects::nonNull)
+//                //.gather(Gatherers.mapConcurrent(5, this.actorClient::getActor))
+//                .toList();
+
         var actors = movie.getActorIds()
                 .stream()
                 .map(this.actorClient::getActor) // intentional sequential calls
+//                .gather(Gatherers.mapConcurrent(5, Context.current().wrap(() -> this.actorClient::getActor)))
                 .filter(Objects::nonNull)
-                //.gather(Gatherers.mapConcurrent(5, this.actorClient::getActor))
                 .toList();
+
         return EntityDtoMapper.toDto(movie, actors, reviews);
     }
 
